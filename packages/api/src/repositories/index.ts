@@ -1,0 +1,6 @@
+export * from './driver.repository'
+export * from './unit.repository'
+export * from './client.repository'
+export * from './location.repository'
+export * from './job.repository'
+export * from './assignment.repository'

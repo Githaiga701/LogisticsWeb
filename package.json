@@ -1,0 +1,37 @@
+{
+  "name": "logistics-platform",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Logistics Management Platform - Monorepo",
+  "scripts": {
+    "dev": "concurrently \"pnpm --filter @logistics/api dev\" \"pnpm --filter @logistics/web dev\"",
+    "dev:api": "pnpm --filter @logistics/api dev",
+    "dev:web": "pnpm --filter @logistics/web dev",
+    "build": "pnpm --filter @logistics/shared build && pnpm --filter @logistics/api build && pnpm --filter @logistics/web build",
+    "build:api": "pnpm --filter @logistics/api build",
+    "build:web": "pnpm --filter @logistics/web build",
+    "lint": "pnpm -r lint",
+    "lint:fix": "pnpm -r lint:fix",
+    "typecheck": "pnpm -r typecheck",
+    "test": "pnpm -r test",
+    "test:api": "pnpm --filter @logistics/api test",
+    "db:generate": "pnpm --filter @logistics/api db:generate",
+    "db:migrate": "pnpm --filter @logistics/api db:migrate",
+    "db:studio": "pnpm --filter @logistics/api db:studio",
+    "db:seed": "pnpm --filter @logistics/api db:seed",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "clean": "pnpm -r clean && rimraf node_modules"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.0",
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5",
+    "typescript": "^5.3.3"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=8.0.0"
+  },
+  "packageManager": "pnpm@8.15.0"
+}

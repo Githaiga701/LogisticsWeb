@@ -1,0 +1,352 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  ADMIN
+  DISPATCH
+  DRIVER
+}
+
+enum DriverStatus {
+  AVAILABLE
+  ON_TRIP
+  OFF_DUTY
+}
+
+enum UnitType {
+  TRUCK
+  TRAILER
+  VAN
+  OTHER
+}
+
+enum BodyType {
+  CLOSED
+  OPEN
+  REFRIGERATED
+  TANKER
+  OTHER
+}
+
+enum UnitStatus {
+  AVAILABLE
+  ASSIGNED
+  MAINTENANCE
+}
+
+enum LocationType {
+  DEPOT
+  WAREHOUSE
+  CLIENT_SITE
+  OTHER
+}
+
+enum JobPriority {
+  LOW
+  NORMAL
+  HIGH
+  URGENT
+}
+
+enum JobStatus {
+  DRAFT
+  PENDING
+  ASSIGNED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+enum AssignmentStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  DISPATCHED
+  IN_TRANSIT
+  ARRIVED
+  COMPLETED
+  CANCELLED
+  REASSIGNED
+  CLOSED
+}
+
+enum EventType {
+  CREATED
+  ACCEPTED
+  REJECTED
+  DISPATCHED
+  DEPARTED
+  IN_TRANSIT
+  ARRIVED
+  COMPLETED
+  DELAYED
+  CANCELLED
+  REASSIGNED
+  CLOSED
+}
+
+enum NotificationType {
+  ASSIGNMENT
+  STATUS_CHANGE
+  DELAY
+  CANCELLATION
+  REJECTION
+  SYSTEM
+}
+
+enum DocumentType {
+  POD_SIGNATURE
+  POD_PHOTO
+  CONTRACT
+  OTHER
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String   @map("password_hash")
+  role         UserRole
+  isActive     Boolean  @default(true) @map("is_active")
+  lastLogin    DateTime? @map("last_login")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  deletedAt    DateTime? @map("deleted_at")
+
+  driver       Driver?
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+model Driver {
+  id            String        @id @default(uuid())
+  userId        String        @unique @map("user_id")
+  firstName     String        @map("first_name")
+  lastName      String        @map("last_name")
+  phone         String
+  licenseNumber String        @map("license_number")
+  licenseClass  String        @map("license_class")
+  licenseExpiry DateTime      @map("license_expiry")
+  status        DriverStatus  @default(AVAILABLE)
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+  deletedAt     DateTime?     @map("deleted_at")
+
+  user          User          @relation(fields: [userId], references: [id])
+  assignments   Assignment[]
+
+  @@map("drivers")
+}
+
+model Unit {
+  id                 String      @id @default(uuid())
+  plateNumber        String      @unique @map("plate_number")
+  capacityTons       Decimal     @map("capacity_tons")
+  unitType           UnitType    @map("unit_type")
+  bodyType           BodyType    @map("body_type")
+  insuranceProvider  String      @map("insurance_provider")
+  insurancePolicy    String      @map("insurance_policy")
+  insuranceExpiry    DateTime    @map("insurance_expiry")
+  registrationExpiry DateTime    @map("registration_expiry")
+  status             UnitStatus  @default(AVAILABLE)
+  createdAt          DateTime    @default(now()) @map("created_at")
+  updatedAt          DateTime    @updatedAt @map("updated_at")
+  deletedAt          DateTime?   @map("deleted_at")
+
+  assignments        Assignment[]
+
+  @@map("units")
+}
+
+model Client {
+  id              String          @id @default(uuid())
+  companyName     String          @map("company_name")
+  billingAddress  String?         @map("billing_address")
+  billingEmail    String?         @map("billing_email")
+  notes           String?
+  isActive        Boolean         @default(true) @map("is_active")
+  createdAt       DateTime        @default(now()) @map("created_at")
+  updatedAt       DateTime        @updatedAt @map("updated_at")
+  deletedAt       DateTime?       @map("deleted_at")
+
+  contacts        ClientContact[]
+  locations       Location[]
+  jobs            Job[]
+
+  @@map("clients")
+}
+
+model ClientContact {
+  id        String   @id @default(uuid())
+  clientId  String   @map("client_id")
+  name      String
+  phone     String
+  email     String?
+  isPrimary Boolean  @default(false) @map("is_primary")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("client_contacts")
+}
+
+model Location {
+  id            String       @id @default(uuid())
+  clientId      String?      @map("client_id")
+  name          String
+  address       String
+  city          String
+  state         String
+  postalCode    String       @map("postal_code")
+  country       String
+  latitude      Decimal?
+  longitude     Decimal?
+  locationType  LocationType @map("location_type")
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  deletedAt     DateTime?    @map("deleted_at")
+
+  client        Client?      @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  jobsAsPickup  Job[]        @relation("PickupLocation")
+  jobsAsDropoff Job[]        @relation("DropoffLocation")
+
+  @@map("locations")
+}
+
+model Job {
+  id                  String       @id @default(uuid())
+  jobNumber           String       @unique @map("job_number")
+  clientId            String       @map("client_id")
+  contactId           String?      @map("contact_id")
+  pickupLocationId    String       @map("pickup_location_id")
+  dropoffLocationId   String       @map("dropoff_location_id")
+  pickupAddress       String?      @map("pickup_address")
+  dropoffAddress      String?      @map("dropoff_address")
+  loadType            String       @map("load_type")
+  weightTons          Decimal?     @map("weight_tons")
+  priority            JobPriority  @default(NORMAL)
+  scheduledDate       DateTime     @map("scheduled_date")
+  scheduledTime       String?      @map("scheduled_time")
+  specialInstructions String?      @map("special_instructions")
+  status              JobStatus    @default(PENDING)
+  createdById         String       @map("created_by")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  deletedAt           DateTime?    @map("deleted_at")
+
+  client              Client       @relation(fields: [clientId], references: [id])
+  contact             ClientContact? @relation(fields: [contactId], references: [id])
+  pickupLocation      Location     @relation("PickupLocation", fields: [pickupLocationId], references: [id])
+  dropoffLocation     Location     @relation("DropoffLocation", fields: [dropoffLocationId], references: [id])
+  createdBy           User         @relation("JobCreator", fields: [createdById], references: [id])
+  assignments         Assignment[]
+
+  @@map("jobs")
+}
+
+model Assignment {
+  id                String            @id @default(uuid())
+  jobId             String            @map("job_id")
+  driverId          String            @map("driver_id")
+  unitId            String            @map("unit_id")
+  status            AssignmentStatus  @default(PENDING)
+  rejectionReason   String?           @map("rejection_reason")
+  cancellationReason String?          @map("cancellation_reason")
+  cancelledById     String?           @map("cancelled_by")
+  reassignedFromId  String?           @map("reassigned_from_id")
+  createdById       String            @map("created_by")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+
+  job               Job               @relation(fields: [jobId], references: [id])
+  driver            Driver            @relation(fields: [driverId], references: [id])
+  unit              Unit              @relation(fields: [unitId], references: [id])
+  cancelledBy       User?             @relation("CancellationActor", fields: [cancelledById], references: [id])
+  reassignedFrom    Assignment?       @relation("Reassignment", fields: [reassignedFromId], references: [id])
+  reassignedTo      Assignment?       @relation("Reassignment")
+  createdBy         User              @relation("AssignmentCreator", fields: [createdById], references: [id])
+  events            Event[]
+  documents         Document[]
+
+  @@index([driverId, status])
+  @@index([unitId, status])
+  @@index([jobId])
+  @@map("assignments")
+}
+
+model Event {
+  id            String      @id @default(uuid())
+  assignmentId  String      @map("assignment_id")
+  eventType     EventType   @map("event_type")
+  actorId       String      @map("actor_id")
+  timestamp     DateTime    @default(now())
+  notes         String?
+  metadata      Json?
+  createdAt     DateTime    @default(now()) @map("created_at")
+
+  assignment    Assignment  @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  actor         User        @relation(fields: [actorId], references: [id])
+
+  @@index([assignmentId])
+  @@index([timestamp])
+  @@map("events")
+}
+
+model Document {
+  id            String       @id @default(uuid())
+  assignmentId  String       @map("assignment_id")
+  documentType  DocumentType @map("document_type")
+  filePath      String       @map("file_path")
+  fileName      String       @map("file_name")
+  fileSize      Int          @map("file_size")
+  mimeType      String       @map("mime_type")
+  uploadedById  String       @map("uploaded_by")
+  createdAt     DateTime     @default(now()) @map("created_at")
+
+  assignment    Assignment   @relation(fields: [assignmentId], references: [id], onDelete: Cascade)
+  uploadedBy    User         @relation(fields: [uploadedById], references: [id])
+
+  @@map("documents")
+}
+
+model Notification {
+  id        String           @id @default(uuid())
+  userId    String           @map("user_id")
+  type      NotificationType
+  title     String
+  message   String
+  data      Json?
+  readAt    DateTime?        @map("read_at")
+  createdAt DateTime         @default(now()) @map("created_at")
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          String    @id @default(uuid())
+  actorId     String    @map("actor_id")
+  action      String
+  entityType  String    @map("entity_type")
+  entityId    String    @map("entity_id")
+  oldValue    Json?     @map("old_value")
+  newValue    Json?     @map("new_value")
+  ipAddress   String?   @map("ip_address")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  actor       User      @relation(fields: [actorId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([actorId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
