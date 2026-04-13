@@ -2,36 +2,33 @@
   "name": "logistics-platform",
   "version": "1.0.0",
   "private": true,
-  "description": "Logistics Management Platform - Monorepo",
+  "description": "Logistics Management Platform - Deployable on Vercel",
   "scripts": {
-    "dev": "concurrently \"pnpm --filter @logistics/api dev\" \"pnpm --filter @logistics/web dev\"",
-    "dev:api": "pnpm --filter @logistics/api dev",
-    "dev:web": "pnpm --filter @logistics/web dev",
-    "build": "pnpm --filter @logistics/shared build && pnpm --filter @logistics/api build && pnpm --filter @logistics/web build",
-    "build:api": "pnpm --filter @logistics/api build",
-    "build:web": "pnpm --filter @logistics/web build",
+    "dev": "concurrently \"pnpm --filter logistics-api dev\" \"pnpm --filter logistics-web dev\"",
+    "dev:api": "pnpm --filter logistics-api dev",
+    "dev:web": "pnpm --filter logistics-web dev",
+    "build": "pnpm --filter logistics-web build",
     "lint": "pnpm -r lint",
-    "lint:fix": "pnpm -r lint:fix",
     "typecheck": "pnpm -r typecheck",
-    "test": "pnpm -r test",
-    "test:api": "pnpm --filter @logistics/api test",
-    "db:generate": "pnpm --filter @logistics/api db:generate",
-    "db:migrate": "pnpm --filter @logistics/api db:migrate",
-    "db:studio": "pnpm --filter @logistics/api db:studio",
-    "db:seed": "pnpm --filter @logistics/api db:seed",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "clean": "pnpm -r clean && rimraf node_modules"
+    "db:generate": "prisma generate --schema=./api/prisma/schema.prisma",
+    "db:migrate": "prisma migrate deploy --schema=./api/prisma/schema.prisma",
+    "db:migrate:dev": "prisma migrate dev --schema=./api/prisma/schema.prisma",
+    "db:studio": "prisma studio --schema=./api/prisma/schema.prisma",
+    "db:seed": "pnpm --filter logistics-api db:seed",
+    "vercel-build": "prisma generate --schema=./api/prisma/schema.prisma && prisma migrate deploy --schema=./api/prisma/schema.prisma && pnpm build",
+    "postinstall": "prisma generate --schema=./api/prisma/schema.prisma"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",
     "concurrently": "^8.2.2",
-    "rimraf": "^5.0.5",
+    "prisma": "^5.8.1",
     "typescript": "^5.3.3"
   },
+  "dependencies": {
+    "@prisma/client": "^5.8.1"
+  },
   "engines": {
-    "node": ">=20.0.0",
-    "pnpm": ">=8.0.0"
+    "node": "20.x"
   },
   "packageManager": "pnpm@8.15.0"
 }
